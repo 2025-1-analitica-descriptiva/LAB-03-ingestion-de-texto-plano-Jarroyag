@@ -24,36 +24,40 @@ def pregunta_01():
     with open('files/input/clusters_report.txt', 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-        # Saltar las primeras 4 líneas (encabezado)
+    lines = [line.strip("\n") for line in lines[4:] if line.strip()!= '']
     data = []
-    for line in lines[4:]:
-        if re.match(r'^\s*\d+', line):
-                # Nueva fila
-            parts = re.split(r'\s{2,}', line.strip())
-            if len(parts) >= 4:
-                    cluster, cantidad, porcentaje, palabras = parts[:4]
-                    palabras_clave = palabras
-                    data.append([int(cluster), int(cantidad), float(porcentaje.replace(',', '.').replace('%', '')), palabras_clave])
-            else:
-                    # Continuación de palabras clave
-                    data[-1][3] += ' ' + parts[0]
+    actual =[]
+
+    for line in lines:
+        if re.match(r"^\s*\d+\s+", line):
+            if actual:
+                data.append(" ".join(actual))
+            actual = [line.strip()]
         else:
-                # Continuación de palabras clave
-            if data:
-                data[-1][3] += ' ' + line.strip()
+            actual.append(line.strip())
+    if actual:
+        data.append(" ".join(actual))
 
-        # Formatear palabras clave
-    for row in data:
-        palabras = row[3]
-        palabras = re.sub(r'\s+', ' ', palabras)  # Un solo espacio
-        palabras = palabras.replace('.', '')      # Sin puntos
-        palabras = ', '.join([w.strip() for w in palabras.split(',')])
-        row[3] = palabras
+    datos = []
+    for reg in data:
+        match = re.match(r"^\s*(\d+)\s+(\d+)\s+([\d,]+)\s+(.*)", reg)
+        if match:
+            cluster = int(match.group(1))
+            cantidad = int(match.group(2))
+            porcentaje = float(match.group(3).replace(",", "."))
+            palabras = match.group(4).strip().rstrip(".")
+            palabras = re.sub(r"^\%+\s*", "", palabras)  
+            palabras = re.sub(r"\s+", " ", palabras)
+            palabras = ", ".join([p.strip() for p in palabras.split(",")])
+            datos.append([cluster, cantidad, porcentaje, palabras])
 
-    df = pd.DataFrame(data, columns=[
-        'cluster', 'cantidad_de_palabras_clave', 'porcentaje_de_palabras_clave', 'principales_palabras_clave'
-    ])
-
+    columnas = [
+        "cluster",
+        "cantidad_de_palabras_clave",
+        "porcentaje_de_palabras_clave",
+        "principales_palabras_clave",
+    ]
+    df = pd.DataFrame(datos, columns=columnas)
     return df
 
 print(pregunta_01())
